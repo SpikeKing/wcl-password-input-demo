@@ -3,8 +3,8 @@ package me.chunyu.spike.wcl_password_input_demo;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.PointF;
 import android.graphics.Rect;
-import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -14,6 +14,7 @@ import android.support.v7.widget.AppCompatEditText;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.inputmethod.EditorInfo;
 
@@ -23,7 +24,8 @@ import android.view.inputmethod.EditorInfo;
  * Created by wangchenlong on 16/2/15.
  */
 public class PasswordEditText extends AppCompatEditText {
-    private static int EXTRA_APP_TABLE_AREA = 50; // 图标的距离
+
+    private static final String TAG = "DEBUG-WCL: " + PasswordEditText.class.getSimpleName();
 
     // 模式的显示图标
     @DrawableRes private int mShowPwdIcon = R.drawable.ic_visibility_24dp;
@@ -66,7 +68,6 @@ public class PasswordEditText extends AppCompatEditText {
 
         // 密码状态
         setInputType(EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD);
-        setTypeface(Typeface.DEFAULT);
 
         addTextChangedListener(new TextWatcher() {
             @Override
@@ -110,19 +111,30 @@ public class PasswordEditText extends AppCompatEditText {
             return super.onTouchEvent(event);
         }
         final Rect bounds = mDrawableSide.getBounds();
-        final int x = (int) event.getX(); // 点击的位置
+        final int x = (int) event.getRawX(); // 点击的位置
+
+        int iconX = (int) getTopRightCorner().x;
 
         // Icon的位置
-        int iconXRect = (int) getX() - bounds.width() - EXTRA_APP_TABLE_AREA;
+        int leftIcon = iconX - bounds.width();
+
+        Log.e(TAG, "x: " + x + ", leftIcon: " + leftIcon);
 
         // 大于Icon的位置, 才能触发点击
-        if (x >= iconXRect) {
+        if (x >= leftIcon) {
             togglePasswordIconVisibility(); // 变换状态
             event.setAction(MotionEvent.ACTION_CANCEL);
             return false;
         }
-
         return super.onTouchEvent(event);
+    }
+
+    // 获取上右角的距离
+    public PointF getTopRightCorner() {
+        float src[] = new float[8];
+        float[] dst = new float[]{0, 0, getWidth(), 0, 0, getHeight(), getWidth(), getHeight()};
+        getMatrix().mapPoints(src, dst);
+        return new PointF(getX() + src[2], getY() + src[3]);
     }
 
     // 显示密码提示标志
@@ -131,8 +143,10 @@ public class PasswordEditText extends AppCompatEditText {
             Drawable drawable = mIsShowPwdIcon ?
                     ContextCompat.getDrawable(getContext(), mHidePwdIcon) :
                     ContextCompat.getDrawable(getContext(), mShowPwdIcon);
+
             // 在最右侧显示图像
             setCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
+
             mDrawableSide = drawable;
         } else {
             // 不显示周边的图像
